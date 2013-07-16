@@ -85,26 +85,7 @@ struct vib_ctrl_pwm {
 	int cycles;
 };
 
-#ifdef CONFIG_VIBRATOR_CONTROL
-struct omap_dm_timer *dmtimer;
-struct vib_signal *vibs;
-static DEFINE_MUTEX(vib_enabled);
 
-extern void vibratorcontrol_register_vibstrength(int vibstrength);
-
-void vibratorcontrol_update(int vibstrength)
-{
-    mutex_lock(&vib_enabled);
-	
-	vibrator_regulator_enable(vibstrength);
-	vibrator_regulator_disable(vibstrength+20);
-
-    mutex_unlock(&vib_enabled);
-
-    return;
-}
-EXPORT_SYMBOL(vibratorcontrol_update);
-#endif
 
 struct vib_signal;
 
@@ -273,6 +254,7 @@ static int vib_ctrl_gpio_activate(struct vib_signal *vibs)
 	if (ret)
 		dvib_tprint("started timer %p while active.\n",
 				&gpioc->hrtimer);
+
 	return 0;
 }
 
@@ -415,7 +397,9 @@ static int vib_ctrl_pwm_config(struct vib_signal *vibs, unsigned int total_us,
 		omap_dm_timer_set_int_enable(dmtimer,
 				OMAP_TIMER_INT_OVERFLOW);
 	}
-
+#ifdef CONFIG_VIBRATOR_CONTROL
+	vibratorcontrol_register_vibstrength(DM_FILLER);
+#endif
 	return 0;
 }
 
@@ -657,9 +641,6 @@ static int vibrator_init(void *data)
 		zfprintk("regulator init %s failed %d\n",
 			vib->reg.name, ret);
 	return ret;
-#ifdef CONFIG_VIBRATOR_CONTROL
-	vibratorcontrol_register_vibstrength(vib);
-#endif
 }
 
 static void vibrator_exit(void *data)
@@ -877,6 +858,8 @@ static int vibs_suspend(void)
 	}
 	return ret;
 }
+
+
 
 void __init mapphone_vibrator_init(void)
 {
