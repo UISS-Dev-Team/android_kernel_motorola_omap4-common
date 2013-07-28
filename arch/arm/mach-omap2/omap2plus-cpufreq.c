@@ -57,7 +57,6 @@ struct lpj_info {
 	unsigned int	freq;
 };
 
-
 static DEFINE_PER_CPU(struct lpj_info, lpj_ref);
 static struct lpj_info global_lpj_ref;
 #endif
@@ -79,12 +78,16 @@ static unsigned int screen_off_max_freq;
 
 int oc_val = 0;
 
-#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
-extern bool lmf_screen_state;
+#ifdef CONFIG_BATTERY_FRIEND
+struct cpufreq_policy *policy;
+extern bool battery_friend_active;
+
+static int polmin = 100000;
+static int polmax = 1000000;
 #endif
 
-#ifdef CONFIG_RESUME_BOOST
-static void boost();
+#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
+extern bool lmf_screen_state;
 #endif
 
 static unsigned int omap_getspeed(unsigned int cpu)
@@ -414,15 +417,21 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 
 	cpufreq_frequency_table_get_attr(freq_table, policy->cpu);
 
-#ifdef CONFIG_OMAP_OCFREQ_12
-	/* We don't set an "if rule" so user won't be stuck at 100/1000 min/max */
-	/* BEcause the policy handling is broken in kexec we have to set a rule for all frequencies below 300mhz */
-	if (policy->cpuinfo.min_freq > 200000 && policy->min > 200000)
-   	policy->min = policy->cpuinfo.min_freq;
-	if (policy->cpuinfo.min_freq == 100000 && policy->min > 100000)
-	policy->min = 100000;
-	if (policy->cpuinfo.min_freq == 200000 && policy->min > 200000)
-	policy->min = 200000;
+	/* Don't use a generic so user won't be stuck at 100/1000 min/max
+	 * Because the policy handling is broken in kexec we have to set a rule for all frequencies below 300mhz
+	 * When user has the battery_friend option enabled the min frequency will be statically 100mhz 
+	 */
+#ifdef CONFIG_BATTERY_FRIEND
+if (likely(battery_friend_active))
+	{
+	if (policy->min > polmin)
+	policy->min = polmin;
+	if (policy->max > polmax)
+	policy->max = polmax;
+	policy->cur = omap_getspeed(policy->cpu);
+	}
+else
+	policy->min = policy->cpuinfo.min_freq;
 	policy->max = policy->cpuinfo.max_freq;
 	policy->cur = omap_getspeed(policy->cpu);
 #else
@@ -448,7 +457,7 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 	}
 
 	/* Tranisition time for worst case */
-	policy->cpuinfo.transition_latency = 300 * 1000;
+	policy->cpuinfo.transition_latency = 40 * 1000;
 
 #ifdef CONFIG_CUSTOM_VOLTAGE
 	customvoltage_register_freqmutex(&omap_cpufreq_lock);
@@ -502,9 +511,16 @@ static ssize_t store_screen_off_freq(struct cpufreq_policy *policy,
 		CPUFREQ_RELATION_H, &index);
 	if (ret)
 		goto out;
-
+#ifdef CONFIG_BATTERY_FRIEND
+if (likely(battery_friend_active))
+	{
+	screen_off_max_freq = 300000;
+	}
+else 
 	screen_off_max_freq = freq_table[index].frequency;
-
+#else
+	screen_off_max_freq = freq_table[index].frequency;
+#endif
 	ret = count;
 
 out:
@@ -639,6 +655,7 @@ static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size
 	}
 	
 	sscanf(buf, "%d\n", &oc_val);
+
 	if (oc_val < 0 ) oc_val = 0;
 	if (oc_val > 2 ) oc_val = 2;
 	if (prev_oc == oc_val) return size;
@@ -660,12 +677,23 @@ static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size
     pr_info("[imoseyon] gpu top speed changed from %lu to %lu (%d,%d)\n", 
       gpu_freqs[prev_oc], gpu_freqs[oc_val]);
   }
-#else 
+#else
+#ifdef CONFIG_BATTERY_FRIEND
+
+if (likely(battery_friend_active))
+	{
+	oc_val = 0;
+	}
+else
         ret1 = opp_disable(dev, gpu_freqs[prev_oc]);
         ret2 = opp_enable(dev, gpu_freqs[oc_val]);
+#else
+        ret1 = opp_disable(dev, gpu_freqs[prev_oc]);
+        ret2 = opp_enable(dev, gpu_freqs[oc_val]);
+#endif
+#endif
         pr_info("[dtrail] gpu top speed changed from %lu to %lu (%d,%d)\n", 
 		gpu_freqs[prev_oc], gpu_freqs[oc_val], ret1, ret2);
-#endif	
 	return size;
 }
 

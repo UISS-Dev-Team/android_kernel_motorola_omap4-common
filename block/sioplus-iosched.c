@@ -407,7 +407,7 @@ static struct elevator_type iosched_sioplus = {
 static int __init sioplus_init(void)
 {
 	/* Register elevator */
-	elv_register(&iosched_sioplus);
+	elv_register(&iosched_sioplus); 
 
 	return 0;
 }

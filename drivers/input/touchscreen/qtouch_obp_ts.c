@@ -37,7 +37,6 @@
 #include <linux/time.h>
 #endif
 
-
 struct qtm_object {
 	struct qtm_obj_entry		entry;
 	uint8_t				report_id_min;
@@ -143,7 +142,6 @@ static irqreturn_t qtouch_ts_irq_handler(int irq, void *dev_id)
 #ifdef CONFIG_TOUCHSCREEN_DEBUG
 	counter_irq++;
 #endif
-
 	disable_irq_nosync(ts->client->irq);
 	if (ts->mode == 1)
 		queue_work(ts->qtouch_ts_wq, &ts->boot_work);
@@ -2467,7 +2465,6 @@ static int qtouch_ts_resume(struct i2c_client *client)
 	/* If we were suspended while a touch was happening
 	   we need to tell the upper layers so they do not hang
 	   waiting on the liftoff that will not come. */
-
 	for (i = 0; i < ts->pdata->multi_touch_cfg.num_touch; i++) {
 		if (qtouch_tsdebug & 4)
 			pr_info("%s: Finger %i down state %i\n",
@@ -2485,7 +2482,6 @@ static int qtouch_ts_resume(struct i2c_client *client)
 	qtouch_force_reset(ts, 0);
 
 	enable_irq(ts->client->irq);
-
 	return 0;
 }
 

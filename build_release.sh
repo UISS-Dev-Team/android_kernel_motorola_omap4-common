@@ -39,7 +39,7 @@ export CROSS_COMPILE=arm-eabi-
 
 # define the defconfig (Do not change)
 make ARCH=arm mapphone_OCEdison_defconfig
-export LOCALVERSION="-JBX-0.7b-Hybrid-Edison"
+export LOCALVERSION="-JBX-0.7d-Hybrid-Edison"
 
 # execute build command with "-j4 core flag" 
 # (You may change this to the count of your CPU.
@@ -54,23 +54,17 @@ echo "Packaging flashable Zip file..."
 cp arch/arm/boot/zImage /home/mnl-manz/razr_kdev_kernel/built/rls/system/etc/kexec/kernel
 
 cd /home/mnl-manz/razr_kdev_kernel/built/rls
-zip -r "JBX-Kernel-0.7b-Hybrid-Edison_$(date +"%Y-%m-%d").zip" *
-mv "JBX-Kernel-0.7b-Hybrid-Edison_$(date +"%Y-%m-%d").zip" /home/mnl-manz/razr_kdev_kernel/built
+zip -r "JBX-Kernel-0.7d-Hybrid-Edison_$(date +"%Y-%m-%d").zip" *
+mv "JBX-Kernel-0.7d-Hybrid-Edison_$(date +"%Y-%m-%d").zip" /home/mnl-manz/razr_kdev_kernel/built
 
 # Exporting changelog to file
 echo "Exporting changelog to file: '/built/Changelog-[date]'"
 cd /home/mnl-manz/razr_kdev_kernel/android_kernel_motorola_omap4-common/
 git log --oneline --after="yesterday" > /home/mnl-manz/razr_kdev_kernel/android_kernel_motorola_omap4-common/changelog/Changelog_$(date +"%Y-%m-%d")
+git log --oneline  > /home/mnl-manz/razr_kdev_kernel/android_kernel_motorola_omap4-common/changelog/Full_History_Changelog
 git add changelog/ .
-git commit -m "Added todays changelog"
-git push origin JBX_EDISON
+git commit -m "Added todays changelog and updated full history"
+git push origin EDISON_WORKING
 
-# Exporting changelog to file
-echo "Exporting changelog to file: '/built/Changelog-[date]'"
-cd /home/mnl-manz/razr_kdev_kernel/android_kernel_motorola_omap4-common
-git log --oneline --after="yesterday" > /home/mnl-manz/razr_kdev_kernel/android_kernel_motorola_omap4-common/changelog/Changelog_$(date +"%Y-%m-%d")
-git add changelog/ .
-git commit -m "Added todays changelog"
-git push origin JBX_EDISON
 
 echo "done"
