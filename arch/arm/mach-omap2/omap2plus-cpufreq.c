@@ -844,7 +844,7 @@ static int __init omap_cpufreq_init(void)
 		pr_warning("%s: unable to get the mpu device\n", __func__);
 		return -EINVAL;
 	}
-
+	register_early_suspend(&omap_cpu_early_suspend_handler); 
 	ret = cpufreq_register_driver(&omap_driver);
 	omap_cpufreq_ready = !ret;
 
@@ -869,6 +869,7 @@ static void __exit omap_cpufreq_exit(void)
 {
 	omap_cpufreq_cooling_exit();
 	cpufreq_unregister_driver(&omap_driver);
+	unregister_early_suspend(&omap_cpu_early_suspend_handler);
 	platform_driver_unregister(&omap_cpufreq_platform_driver);
 	platform_device_unregister(&omap_cpufreq_device);
 }
